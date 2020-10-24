@@ -7,14 +7,17 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
+import com.example.myapplicationfirst.Command.CommandOperation;
+
 import java.util.Arrays;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
-    private Operation _operationState;
     private double[] _operands = new double[2];
+    private int[] _indOp = new int[2];
     private int _size = 0;
+    private CommandOperation _operationCommand;
 
     private List<Integer> _numberIds = Arrays.asList(
             R.id.nine,
@@ -26,7 +29,8 @@ public class MainActivity extends AppCompatActivity {
             R.id.three,
             R.id.two,
             R.id.one,
-            R.id.zero);
+            R.id.zero,
+            R.id.dot);
     private List<Integer> _operationsIds = Arrays.asList(
             R.id.sub,
             R.id.plus,
@@ -34,16 +38,10 @@ public class MainActivity extends AppCompatActivity {
             R.id.mul,
             R.id.division,
             R.id.percent,
-            R.id.dot,
             R.id.equals,
             R.id.clear,
             R.id.del
     );
-
-    public void setOperation(Operation op)
-    {
-        _operationState = op;
-    }
 
     public void setText(String text)
     {
@@ -54,42 +52,61 @@ public class MainActivity extends AppCompatActivity {
     {
         return _textView.getText().toString();
     }
-    public void addOperand(double a)
-    {
-        _operands[_size] = a;
-        _size++;
-    }
-
-    public void delOperands()
-    {
-        _size--;
-        _operands[_size] = 0; 
-    }
 
     public void solve()
     {
-
+        if(_size == 0 || _operationCommand == null)
+            return;
+        try {
+                String number = _textView.getText().toString().substring(_indOp[_size] + 3);
+                _operands[_size] = Double.parseDouble(number);
+            }catch (Exception e){
+            return;
+        }
+        _size = 0;
+        String res = _operationCommand.execute(_operands[0], _operands[1]);
+        _textView.setText(res);
+        _operationCommand = null;
+        if(res.equals("Error"))
+            return;
+        _operands[_size] = Double.parseDouble(res);
     }
 
-    private Command.CommandInterface[] _commandArray = {Command.CleanCommand, Command.DotCommand, Command.EqualsCommand, Command.SignCommand, Command.DelCommand};
-
-    private int _startNumber = 0;
-    private boolean _operation = false;
-    private TextView _textView;
-
-    public TextView getTextView()
+    public void setOperation(CommandOperation op)
     {
-        return _textView;
+        _operands[_size] = Double.parseDouble(getLastNumber());
+        _size++;
+        _indOp[_size] = _textView.getText().length();
+
+        _operationCommand = op;
     }
+
+    public void deleteChar()
+    {
+        String text;
+        if(_textView.getText().toString().lastIndexOf(" ") == _textView.getText().length() - 1) {
+            _operationCommand = null;
+            text = _textView.getText().toString().substring(0, _textView.getText().length() - 3);
+            _size--;
+        }
+        else {
+            text = _textView.getText().toString().substring(0, _textView.getText().length() - 1);
+        }
+        _textView.setText(text);
+    }
+
+    public CommandOperation getCommandOperation()
+    {
+        return _operationCommand;
+    }
+
+    private Command.CommandInterface[] _commandArray = {Command.CleanCommand, Command.EqualsCommand, Command.SignCommand, Command.DelCommand};
+
+    private TextView _textView;
 
     public String getLastNumber()
     {
-        return _textView.getText().toString().substring(_startNumber);
-    }
-
-    public void isCommand(boolean t)
-    {
-        _operation = t;
+        return _textView.getText().toString().substring(_indOp[_size]);
     }
 
     @Override
@@ -103,21 +120,21 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 Button b = (Button) v;
-                if(_textView.getText().equals("0"))
+                String s = b.getText().toString();
+                if(_textView.getText().equals("0") || _textView.getText().equals("Error") )
                 {
-                    _textView.setText(b.getText());
+                    _textView.setText(s);
                     return;
                 }
 
-                String str = "" + _textView.getText() + b.getText();
-                _textView.setText(str);
-                if(_operation)
-                {
-                    _startNumber = _textView.getText().length() - 1;
-                    _operation = false;
-                }
+                if(s.equals(".") && getLastNumber().contains("."))
+                        return;
+                if(getLastNumber().length() > 12)
+                    return;
+                _textView.setText("" + _textView.getText() + s);
             }
         };
+        System.out.println( R.string.app_name);
         View.OnClickListener onOperationClick = new View.OnClickListener() {
             @Override
             public void onClick(View v) {
